@@ -3884,7 +3884,13 @@ namespace dxvk {
         uint32_t killSubgroup = m_module.opGroupNonUniformLogicalAnd(
           m_module.defBoolType(),
           m_module.constu32(spv::ScopeSubgroup),
-          spv::GroupOperationReduce, killState, 0);
+          m_moduleInfo.options.useSubgroupOpsClustered
+            ? spv::GroupOperationClusteredReduce
+            : spv::GroupOperationReduce,
+          killState,
+          m_moduleInfo.options.useSubgroupOpsClustered
+            ? m_module.constu32(4)
+            : 0);
         
         DxbcConditional cond;
         cond.labelIf  = m_module.allocateId();
@@ -6177,6 +6183,9 @@ namespace dxvk {
       if (m_moduleInfo.options.useSubgroupOpsForEarlyDiscard) {
         m_module.enableCapability(spv::CapabilityGroupNonUniform);
         m_module.enableCapability(spv::CapabilityGroupNonUniformArithmetic);
+
+        if (m_moduleInfo.options.useSubgroupOpsClustered)
+          m_module.enableCapability(spv::CapabilityGroupNonUniformClustered);
       }
     }
     
