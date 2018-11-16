@@ -91,11 +91,22 @@ namespace dxvk {
     
     // Gather the offsets where the binding IDs
     // are stored so we can quickly remap them.
+    uint32_t o1VarId = 0;
+    
     for (auto ins : m_code) {
-      if (ins.opCode() == spv::OpDecorate
-       && ((ins.arg(2) == spv::DecorationBinding)
-        || (ins.arg(2) == spv::DecorationSpecId)))
-        m_idOffsets.push_back(ins.offset() + 3);
+      if (ins.opCode() == spv::OpDecorate) {
+        if (ins.arg(2) == spv::DecorationBinding
+         || ins.arg(2) == spv::DecorationSpecId)
+          m_idOffsets.push_back(ins.offset() + 3);
+        
+        if (ins.arg(2) == spv::DecorationLocation && ins.arg(3) == 1) {
+          m_o1LocOffset = ins.offset() + 2;
+          o1VarId = ins.arg(1);
+        }
+        
+        if (ins.arg(2) == spv::DecorationIndex && ins.arg(1) == o1VarId)
+          m_o1IdxOffset = ins.offset() + 2;
+      }
     }
   }
   
@@ -128,14 +139,22 @@ namespace dxvk {
   
   Rc<DxvkShaderModule> DxvkShader::createShaderModule(
     const Rc<vk::DeviceFn>&          vkd,
-    const DxvkDescriptorSlotMapping& mapping) {
+    const DxvkDescriptorSlotMapping& mapping,
+          bool                       dualSrc) {
     SpirvCodeBuffer spirvCode = m_code;
+    uint32_t* code = spirvCode.data();
     
     // Remap resource binding IDs
-    uint32_t* code = spirvCode.data();
     for (uint32_t ofs : m_idOffsets) {
       if (code[ofs] < MaxNumResourceSlots)
         code[ofs] = mapping.getBindingId(code[ofs]);
+    }
+
+    // For dual-source blending we need to re-map
+    // location 1, index 0 to location 0, index 1
+    if (dualSrc && m_o1IdxOffset && m_o1LocOffset) {
+      code[m_o1IdxOffset] = spv::DecorationLocation;
+      code[m_o1LocOffset] = spv::DecorationIndex;
     }
     
     return new DxvkShaderModule(vkd, this, spirvCode);

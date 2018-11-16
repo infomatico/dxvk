@@ -162,11 +162,13 @@ namespace dxvk {
      * Maps the binding slot numbers 
      * \param [in] vkd Vulkan device functions
      * \param [in] mapping Resource slot mapping
+     * \param [in] dualSrc Enable dual-source blending
      * \returns The shader module
      */
     Rc<DxvkShaderModule> createShaderModule(
       const Rc<vk::DeviceFn>&          vkd,
-      const DxvkDescriptorSlotMapping& mapping);
+      const DxvkDescriptorSlotMapping& mapping,
+            bool                       dualSrc);
     
     /**
      * \brief Inter-stage interface slots
@@ -242,6 +244,9 @@ namespace dxvk {
     DxvkShaderOptions             m_options;
     DxvkShaderConstData           m_constData;
     DxvkShaderKey                 m_key;
+
+    size_t m_o1IdxOffset = 0;
+    size_t m_o1LocOffset = 0;
     
   };
   
