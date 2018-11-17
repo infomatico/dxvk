@@ -93,6 +93,16 @@ namespace dxvk {
     m_queries.disableQuery(m_cmd, query);
     query.query->endRecording(query.revision);
   }
+
+
+  void DxvkContext::beginQuery(const Rc<DxvkGpuQuery>& query) {
+    m_queryManager.enableQuery(m_cmd, query);
+  }
+
+
+  void DxvkContext::endQuery(const Rc<DxvkGpuQuery>& query) {
+    m_queryManager.disableQuery(m_cmd, query);
+  }
   
   
   void DxvkContext::bindRenderTargets(
@@ -1074,9 +1084,15 @@ namespace dxvk {
       m_queries.beginQueries(m_cmd,
         VK_QUERY_TYPE_PIPELINE_STATISTICS);
       
+      m_queryManager.beginQueries(m_cmd,
+        VK_QUERY_TYPE_PIPELINE_STATISTICS);
+      
       m_cmd->cmdDispatch(x, y, z);
       
       m_queries.endQueries(m_cmd,
+        VK_QUERY_TYPE_PIPELINE_STATISTICS);
+      
+      m_queryManager.endQueries(m_cmd,
         VK_QUERY_TYPE_PIPELINE_STATISTICS);
       
       this->commitComputePostBarriers();
@@ -1102,11 +1118,17 @@ namespace dxvk {
       m_queries.beginQueries(m_cmd,
         VK_QUERY_TYPE_PIPELINE_STATISTICS);
       
+      m_queryManager.beginQueries(m_cmd,
+        VK_QUERY_TYPE_PIPELINE_STATISTICS);
+      
       m_cmd->cmdDispatchIndirect(
         physicalSlice.handle(),
         physicalSlice.offset());
       
       m_queries.endQueries(m_cmd,
+        VK_QUERY_TYPE_PIPELINE_STATISTICS);
+      
+      m_queryManager.endQueries(m_cmd,
         VK_QUERY_TYPE_PIPELINE_STATISTICS);
       
       this->commitComputePostBarriers();
@@ -1740,6 +1762,11 @@ namespace dxvk {
     
     query.query->endRecording(query.revision);
   }
+
+
+  void DxvkContext::writeTimestamp(const Rc<DxvkGpuQuery>& query) {
+    m_queryManager.writeTimestamp(m_cmd, query);
+  }
   
   
   void DxvkContext::clearImageViewFb(
@@ -2363,6 +2390,9 @@ namespace dxvk {
       // Begin occlusion queries
       m_queries.beginQueries(m_cmd, VK_QUERY_TYPE_OCCLUSION);
       m_queries.beginQueries(m_cmd, VK_QUERY_TYPE_PIPELINE_STATISTICS);
+
+      m_queryManager.beginQueries(m_cmd, VK_QUERY_TYPE_OCCLUSION);
+      m_queryManager.beginQueries(m_cmd, VK_QUERY_TYPE_PIPELINE_STATISTICS);
     }
   }
   
@@ -2378,6 +2408,9 @@ namespace dxvk {
       
       m_queries.endQueries(m_cmd, VK_QUERY_TYPE_OCCLUSION);
       m_queries.endQueries(m_cmd, VK_QUERY_TYPE_PIPELINE_STATISTICS);
+      
+      m_queryManager.endQueries(m_cmd, VK_QUERY_TYPE_OCCLUSION);
+      m_queryManager.endQueries(m_cmd, VK_QUERY_TYPE_PIPELINE_STATISTICS);
       
       this->renderPassUnbindFramebuffer();
 
@@ -2490,6 +2523,9 @@ namespace dxvk {
       
       m_queries.beginQueries(m_cmd,
         VK_QUERY_TYPE_TRANSFORM_FEEDBACK_STREAM_EXT);
+      
+      m_queryManager.beginQueries(m_cmd,
+        VK_QUERY_TYPE_TRANSFORM_FEEDBACK_STREAM_EXT);
     }
   }
 
@@ -2512,6 +2548,9 @@ namespace dxvk {
       }
 
       m_queries.endQueries(m_cmd, 
+        VK_QUERY_TYPE_TRANSFORM_FEEDBACK_STREAM_EXT);
+      
+      m_queryManager.endQueries(m_cmd, 
         VK_QUERY_TYPE_TRANSFORM_FEEDBACK_STREAM_EXT);
       
       m_cmd->cmdEndTransformFeedback(
